@@ -1,0 +1,211 @@
+package form
+
+import (
+	"encoding/base64"
+	"reflect"
+	"testing"
+
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/Ccheers/bind/internal/encoding"
+	bdtest "github.com/Ccheers/bind/internal/testdata/binding"
+	"github.com/Ccheers/bind/internal/testdata/complex"
+	ectest "github.com/Ccheers/bind/internal/testdata/encoding"
+)
+
+type LoginRequest struct {
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+func TestFormCodecMarshal(t *testing.T) {
+	req := &LoginRequest{
+		Username: "cc-bind",
+		Password: "cc-bind_pwd",
+	}
+	content, err := encoding.GetCodec(Name).Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual([]byte("password=cc-bind_pwd&username=cc-bind"), content) {
+		t.Errorf("expect %s, got %s", "password=cc-bind_pwd&username=cc-bind", content)
+	}
+
+	req = &LoginRequest{
+		Username: "cc-bind",
+		Password: "",
+	}
+	content, err = encoding.GetCodec(Name).Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual([]byte("username=cc-bind"), content) {
+		t.Errorf("expect %s, got %s", "username=cc-bind", content)
+	}
+
+	m := struct {
+		ID   int32  `json:"id"`
+		Name string `json:"name"`
+	}{
+		ID:   1,
+		Name: "cc-bind",
+	}
+	content, err = encoding.GetCodec(Name).Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual([]byte("id=1&name=cc-bind"), content) {
+		t.Errorf("expect %s, got %s", "id=1&name=cc-bind", content)
+	}
+}
+
+func TestFormCodecUnmarshal(t *testing.T) {
+	req := &LoginRequest{
+		Username: "cc-bind",
+		Password: "cc-bind_pwd",
+	}
+	content, err := encoding.GetCodec(Name).Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bindReq := new(LoginRequest)
+	err = encoding.GetCodec(Name).Unmarshal(content, bindReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual("cc-bind", bindReq.Username) {
+		t.Errorf("expect %v, got %v", "cc-bind", bindReq.Username)
+	}
+	if !reflect.DeepEqual("cc-bind_pwd", bindReq.Password) {
+		t.Errorf("expect %v, got %v", "cc-bind_pwd", bindReq.Password)
+	}
+}
+
+func TestProtoEncodeDecode(t *testing.T) {
+	in := &complex.Complex{
+		Id:      2233,
+		NoOne:   "2233",
+		Simple:  &complex.Simple{Component: "5566"},
+		Simples: []string{"3344", "5566"},
+		B:       true,
+		Sex:     complex.Sex_woman,
+		Age:     18,
+		A:       19,
+		Count:   3,
+		Price:   11.23,
+		D:       22.22,
+		Byte:    []byte("123"),
+		Map:     map[string]string{"cc-bind": "https://go-cc-bind.dev/"},
+
+		Timestamp: &timestamppb.Timestamp{Seconds: 20, Nanos: 2},
+		Duration:  &durationpb.Duration{Seconds: 120, Nanos: 22},
+		Field:     &fieldmaskpb.FieldMask{Paths: []string{"1", "2"}},
+		Double:    &wrapperspb.DoubleValue{Value: 12.33},
+		Float:     &wrapperspb.FloatValue{Value: 12.34},
+		Int64:     &wrapperspb.Int64Value{Value: 64},
+		Int32:     &wrapperspb.Int32Value{Value: 32},
+		Uint64:    &wrapperspb.UInt64Value{Value: 64},
+		Uint32:    &wrapperspb.UInt32Value{Value: 32},
+		Bool:      &wrapperspb.BoolValue{Value: false},
+		String_:   &wrapperspb.StringValue{Value: "go-cc-bind"},
+		Bytes:     &wrapperspb.BytesValue{Value: []byte("123")},
+	}
+	content, err := encoding.GetCodec(Name).Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if "a=19&age=18&b=true&bool=false&byte=MTIz&bytes=MTIz&count=3&d=22.22&double=12.33&duration="+
+		"2m0.000000022s&field=1%2C2&float=12.34&id=2233&int32=32&int64=64&map%5Bcc-bind%5D=https%3A%2F%2Fgo-cc-bind.dev%2F&"+
+		"numberOne=2233&price=11.23&sex=woman&simples=3344&simples=5566&string=go-cc-bind"+
+		"&timestamp=1970-01-01T00%3A00%3A20.000000002Z&uint32=32&uint64=64&very_simple.component=5566" != string(content) {
+		t.Errorf("rawpath is not equal to %s", content)
+	}
+	in2 := &complex.Complex{}
+	err = encoding.GetCodec(Name).Unmarshal(content, in2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int64(2233) != in2.Id {
+		t.Errorf("expect %v, got %v", int64(2233), in2.Id)
+	}
+	if "2233" != in2.NoOne {
+		t.Errorf("expect %v, got %v", "2233", in2.NoOne)
+	}
+	if in2.Simple == nil {
+		t.Errorf("expect %v, got %v", nil, in2.Simple)
+	}
+	if "5566" != in2.Simple.Component {
+		t.Errorf("expect %v, got %v", "5566", in2.Simple.Component)
+	}
+	if in2.Simples == nil {
+		t.Errorf("expect %v, got %v", nil, in2.Simples)
+	}
+	if len(in2.Simples) != 2 {
+		t.Errorf("expect %v, got %v", 2, len(in2.Simples))
+	}
+	if "3344" != in2.Simples[0] {
+		t.Errorf("expect %v, got %v", "3344", in2.Simples[0])
+	}
+	if "5566" != in2.Simples[1] {
+		t.Errorf("expect %v, got %v", "5566", in2.Simples[1])
+	}
+}
+
+func TestDecodeStructPb(t *testing.T) {
+	req := new(ectest.StructPb)
+	query := `data={"name":"cc-bind"}&data_list={"name1": "cc-bind"}&data_list={"name2": "go-cc-bind"}`
+	if err := encoding.GetCodec(Name).Unmarshal([]byte(query), req); err != nil {
+		t.Fatal(err)
+	}
+	if "cc-bind" != req.Data.GetFields()["name"].GetStringValue() {
+		t.Errorf("except %v, got %v", "cc-bind", req.Data.GetFields()["name"].GetStringValue())
+	}
+	if len(req.DataList) != 2 {
+		t.Fatalf("execpt %v, got %v", 2, len(req.DataList))
+	}
+	if "cc-bind" != req.DataList[0].GetFields()["name1"].GetStringValue() {
+		t.Errorf("except %v, got %v", "cc-bind", req.Data.GetFields()["name1"].GetStringValue())
+	}
+	if "go-cc-bind" != req.DataList[1].GetFields()["name2"].GetStringValue() {
+		t.Errorf("except %v, got %v", "go-cc-bind", req.Data.GetFields()["name2"].GetStringValue())
+	}
+}
+
+func TestDecodeBytesValuePb(t *testing.T) {
+	url := "https://example.com/xx/?a=1&b=2&c=3"
+	val := base64.URLEncoding.EncodeToString([]byte(url))
+	content := "bytes=" + val
+	in2 := &complex.Complex{}
+	if err := encoding.GetCodec(Name).Unmarshal([]byte(content), in2); err != nil {
+		t.Error(err)
+	}
+	if url != string(in2.Bytes.Value) {
+		t.Errorf("except %s, got %s", val, in2.Bytes.Value)
+	}
+}
+
+func TestEncodeFieldMask(t *testing.T) {
+	req := &bdtest.HelloRequest{
+		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"foo", "bar"}},
+	}
+	if v := EncodeFieldMask(req.ProtoReflect()); v != "updateMask=foo,bar" {
+		t.Errorf("got %s", v)
+	}
+}
+
+func TestOptional(t *testing.T) {
+	v := int32(100)
+	req := &bdtest.HelloRequest{
+		Name:     "foo",
+		Sub:      &bdtest.Sub{Name: "bar"},
+		OptInt32: &v,
+	}
+	query, _ := EncodeValues(req)
+	if query.Encode() != "name=foo&optInt32=100&sub.naming=bar" {
+		t.Fatalf("got %s", query.Encode())
+	}
+}
