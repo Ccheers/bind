@@ -30,3 +30,20 @@ func TestBindRequestQuery(t *testing.T) {
 
 	log.Println(res)
 }
+
+func TestTryMyBestBind(t *testing.T) {
+	req, err := http.NewRequest(
+		http.MethodPost, "http://localhost:8080?age=1",
+		strings.NewReader("{\"name\":\"haijun\", \"Age\": 2}"))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	type dst struct {
+		Name string `json:"name"`
+		Age  int    `json:"age"`
+	}
+	var res dst
+	TryMyBestBind(req, &res)
+	log.Println(res)
+}

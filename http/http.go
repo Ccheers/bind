@@ -22,6 +22,14 @@ const (
 	baseContentType = "application"
 )
 
+// TryMyBestBind decodes the request to object.
+func TryMyBestBind(r *http.Request, v interface{}, opts ...OptionFunc) {
+	_ = BindRequestQuery(r, v)
+	_ = BindForm(r, v)
+	_ = BindRequestBody(r, v)
+	return
+}
+
 // BindRequestVars decodes the request vars to object.
 func BindRequestVars(r *http.Request, raws map[string]string, v interface{}) error {
 	vars := make(url.Values, len(raws))
