@@ -10,6 +10,12 @@ import (
 
 	"github.com/Ccheers/bind/internal/encoding"
 	"github.com/Ccheers/bind/internal/encoding/json"
+
+	_ "github.com/Ccheers/bind/internal/encoding/form"
+	_ "github.com/Ccheers/bind/internal/encoding/json"
+	_ "github.com/Ccheers/bind/internal/encoding/proto"
+	_ "github.com/Ccheers/bind/internal/encoding/xml"
+	_ "github.com/Ccheers/bind/internal/encoding/yaml"
 )
 
 const (
@@ -55,10 +61,6 @@ func BindRequestBody(r *http.Request, v interface{}, opts ...OptionFunc) error {
 	for _, opt := range opts {
 		opt(&options)
 	}
-	codec, ok := CodecForRequest(r, "Content-Type", options)
-	if !ok {
-		return fmt.Errorf("%w: unregister Content-Type: %s", ErrBind, r.Header.Get("Content-Type"))
-	}
 	data, err := io.ReadAll(r.Body)
 
 	// reset body.
@@ -70,6 +72,8 @@ func BindRequestBody(r *http.Request, v interface{}, opts ...OptionFunc) error {
 	if len(data) == 0 {
 		return nil
 	}
+
+	codec, _ := CodecForRequest(r, "Content-Type", options)
 	if err = codec.Unmarshal(data, v); err != nil {
 		return fmt.Errorf("%w: body unmarshal %s", ErrBind, err.Error())
 	}
