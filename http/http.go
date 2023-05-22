@@ -24,9 +24,13 @@ const (
 
 // TryMyBestBind decodes the request to object.
 func TryMyBestBind(r *http.Request, v interface{}, opts ...OptionFunc) {
+	data, _ := io.ReadAll(r.Body)
+	// reset body.
+	r.Body = io.NopCloser(bytes.NewBuffer(data))
+
 	_ = BindRequestQuery(r, v)
-	_ = BindForm(r, v)
 	_ = BindRequestBody(r, v)
+	_ = BindForm(r, v)
 	return
 }
 
@@ -70,13 +74,10 @@ func BindRequestBody(r *http.Request, v interface{}, opts ...OptionFunc) error {
 		opt(&options)
 	}
 	data, err := io.ReadAll(r.Body)
-
-	// reset body.
-	r.Body = io.NopCloser(bytes.NewBuffer(data))
-
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrBind, err.Error())
 	}
+
 	if len(data) == 0 {
 		return nil
 	}
