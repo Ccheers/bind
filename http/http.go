@@ -1,7 +1,6 @@
 package http
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,30 +21,18 @@ const (
 	baseContentType = "application"
 )
 
-// TryMyBestBind decodes the request to object.
-func TryMyBestBind(r *http.Request, v interface{}, opts ...OptionFunc) {
-	data, _ := io.ReadAll(r.Body)
-	// reset body.
-	r.Body = io.NopCloser(bytes.NewBuffer(data))
-
-	_ = BindRequestQuery(r, v)
-	_ = BindRequestBody(r, v)
-	_ = BindForm(r, v)
-	return
-}
-
 // BindRequestVars decodes the request vars to object.
 func BindRequestVars(r *http.Request, raws map[string]string, v interface{}) error {
 	vars := make(url.Values, len(raws))
 	for k, v := range raws {
 		vars[k] = []string{v}
 	}
-	return BindQuery(vars, v)
+	return BindURLValues(vars, v)
 }
 
 // BindRequestQuery decodes the request vars to object.
 func BindRequestQuery(r *http.Request, v interface{}) error {
-	return BindQuery(r.URL.Query(), v)
+	return BindURLValues(r.URL.Query(), v)
 }
 
 type OptionFunc func(*Options)

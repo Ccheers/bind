@@ -61,12 +61,12 @@ func TestBindQuery(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := BindQuery(tt.args.vars, tt.args.target)
+			err := BindURLValues(tt.args.vars, tt.args.target)
 			if !errors.Is(err, tt.err) {
-				t.Fatalf("BindQuery() error = %v, err %v", err, tt.err)
+				t.Fatalf("BindURLValues() error = %v, err %v", err, tt.err)
 			}
 			if err == nil && !reflect.DeepEqual(tt.args.target, tt.want) {
-				t.Errorf("BindQuery() target = %v, want %v", tt.args.target, tt.want)
+				t.Errorf("BindURLValues() target = %v, want %v", tt.args.target, tt.want)
 			}
 		})
 	}
