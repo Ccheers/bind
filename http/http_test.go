@@ -6,6 +6,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -57,6 +58,16 @@ func TestTryMyBestBind1(t *testing.T) {
 	fw.WriteField("age", "12")
 	fw.Close()
 
+	formBody2 := &bytes.Buffer{}
+	fw = multipart.NewWriter(formBody2)
+	wr, _ := fw.CreateFormFile("file", ".gitignore")
+	rd, _ := os.Open("/Users/eric/GoProject/bind/.gitignore")
+	io.Copy(wr, rd)
+	rd.Close()
+	fw.WriteField("name", "haijun")
+	fw.WriteField("age", "12")
+	fw.Close()
+
 	type args struct {
 		r    *http.Request
 		v    interface{}
@@ -75,13 +86,24 @@ func TestTryMyBestBind1(t *testing.T) {
 			},
 			want: &dst{
 				Name: "haijun",
-				Age:  1,
+				Age:  2,
 			},
 		},
 		{
 			name: "2",
 			args: args{
 				r: mustNewReq(http.MethodPost, fw.FormDataContentType(), "http://localhost:8080?age=1", formBody),
+				v: &res,
+			},
+			want: &dst{
+				Name: "haijun",
+				Age:  1,
+			},
+		},
+		{
+			name: "3",
+			args: args{
+				r: mustNewReq(http.MethodPost, fw.FormDataContentType(), "http://localhost:8080", formBody2),
 				v: &res,
 			},
 			want: &dst{
