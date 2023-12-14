@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"net/url"
 
@@ -17,17 +16,17 @@ var (
 )
 
 const (
-	MegaByte = 1024 * 1024
+	MegaByte16 = 16 * 1024 * 1024
 )
 
 // TryMyBestBind decodes the request to object.
 // 不支持解析 multipart/form-data ， 需要解析大文件数据请使用 BindForm
-// 只有 MegaByte 以下的内容才能被 form-data 解析
+// 只有 MegaByte16 以下的内容才能被 form-data 解析
 func TryMyBestBind(r *http.Request, v interface{}, opts ...OptionFunc) {
 	_ = BindRequestQuery(r, v)
 
 	// 大参数的数据不能支持
-	if r.ContentLength > MegaByte {
+	if r.ContentLength > MegaByte16 {
 		return
 	}
 	// reset body.
@@ -50,7 +49,7 @@ func BindURLValues(vars url.Values, target interface{}) error {
 
 // BindForm bind form parameters to target.
 func BindForm(req *http.Request, target interface{}) error {
-	if err := req.ParseMultipartForm(math.MaxInt32); err != nil {
+	if err := req.ParseMultipartForm(MegaByte16); err != nil {
 		return err
 	}
 	if err := encoding.GetCodec(form.Name).Unmarshal([]byte(req.Form.Encode()), target); err != nil {
